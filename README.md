@@ -108,11 +108,95 @@ feature-probe-sdk/
 
 ---
 
-## Próximos passos
 
-- [ ] Suporte a múltiplos ambientes (ex: QA, staging, prod)
-- [ ] Plugin para injeção automática em serviços Web
-- [ ] Publicar via JitPack ou Maven Central
+---
+
+## 🎯 Estudo de Caso: Nova Jornada de Pagamento de Fatura
+
+### Cenário
+
+Sua squad está desenvolvendo uma **nova experiência de pagamento de fatura** no aplicativo mobile do banco. Antes de liberar para todos os clientes, vocês desejam:
+
+- Testar a jornada com um grupo pequeno de usuários internos (via allow list)
+- Depois liberar gradualmente com rollout percentual
+- Ter a possibilidade de reverter sem precisar de deploy
+- Não adicionar blocos de código repetitivos em cada tela/serviço
+
+### Solução com `feature-probe`
+
+1. Definam um identificador único para a feature:
+   - `nova-tela-pagamento-fatura`
+
+2. Inicializem a SDK com a configuração desejada:
+
+```kotlin
+FeatureProbe.init(
+    FeatureProbeConfig(
+        rolloutPercentage = 20,     // libera para 20% dos usuários
+        useAllowList = true,        // ativa controle por allow list
+        useRollout = true           // ativa rollout incremental
+    )
+)
+```
+
+3. No momento da decisão, use a SDK:
+
+```kotlin
+val podeUsarNovaTela = FeatureProbe.isEnabled("nova-tela-pagamento-fatura", userId)
+
+if (podeUsarNovaTela) {
+    navController.navigate("novaTelaPagamento")
+} else {
+    navController.navigate("telaPagamentoAtual")
+}
+```
+
+### Benefícios dessa abordagem
+
+✅ Centralização da regra de rollout  
+✅ Evita uso de variáveis de ambiente ou `if` espalhados no código  
+✅ Liberação segura e gradual  
+✅ Foco total do time na experiência, não no controle de acesso  
+✅ Possibilidade de reuso da regra em Android, iOS e backend  
+
+---
+
+---
+
+## 🧠 Estudo de Caso Backend: Nova Lógica de Cálculo de Juros para Pagamento Atrasado
+
+### Cenário
+
+Sua squad do backend está trabalhando em uma **nova regra de cálculo de juros** para pagamentos atrasados de fatura. Essa nova regra precisa ser validada com:
+
+- Usuários em uma **allow list de testes internos**
+- Liberação gradual via **rollout controlado**
+
+Você quer evitar `if` espalhado, variáveis de ambiente ou feature flags manuais, e deseja usar o `feature-probe` para controlar a ativação da lógica de forma centralizada e limpa.
+
+---
+
+### Exemplo de uso no código backend (Kotlin + Spring Boot)
+
+```kotlin
+@RestController
+@RequestMapping("/api/fatura")
+class FaturaController {
+
+    @GetMapping("/{userId}/calcular-juros")
+    fun calcularJuros(@PathVariable userId: String): ResponseEntity<JurosResponse> {
+        val usarNovaRegra = FeatureProbe.isEnabled("nova-regra-juros", userId)
+
+        val juros = if (usarNovaRegra) {
+            calcularJurosNovaLogica(userId)
+        } else {
+            calcularJurosAtual(userId)
+        }
+
+        return ResponseEntity.ok(JurosResponse(juros))
+    }
+}
+```
 
 ---
 
